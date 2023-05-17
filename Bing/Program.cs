@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Bing
+namespace Kurs2
 {
     class Program
     {

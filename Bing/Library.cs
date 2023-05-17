@@ -5,8 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.IO;
+using System.Runtime.CompilerServices;
 
-namespace Kurs2
+namespace Kurs2 
 {
     [Serializable]
     class Library
@@ -17,29 +20,31 @@ namespace Kurs2
         {
             clients = clients1;
             books = books1;
-
         }
 
         public static List<Books> Books => books;
         public static Dictionary<int, Clients> Clients => clients;
-        public static bool Add_Book(int key, string name, string author, DateTime date_of_publishing, int number_of_copies/*, int kol_vo_vsego, int kol_vo_vzyat*/)
-        {
-            foreach (var book in books)
-            {
-                if (book.Key == key) return false;
 
-            }
-            Books book1 = new Books(key, name, author, date_of_publishing, number_of_copies/*, kol_vo_vsego, kol_vo_vzyat*/);
-            Books.Add(book1);
+        public static bool Add_Book(Books item)
+        {
+            if (!ContainsBookInLibrary(item.Key)) return false;
+            foreach (var book in books) if (book.Key == item.Key) return false;
+            Books.Add(item);
             return true;
         }
-        public static void Delete_Book(int key)
+
+        public static bool Delete_Book(int key)
         {
             for (int j = 0; j < books.Count; j++)
             {
                 if (books[j].Key == key)
                 {
-                    if (books[j].Number_of_copies < 1)
+                    if (NoHand(books[j]))
+                    {
+                        return false;
+                    }
+
+                    if (books[j].Number_of_copies <= 1)
                     {
                         Books.Remove(books[j]);
                     }
@@ -47,45 +52,37 @@ namespace Kurs2
                     {
                         books[j].Number_of_copies--;
                     }
-
-                    break;
                 }
             }
 
+            return true;
         }
 
-
-        public static void Add_To_Library(Dictionary<int, Clients> clients, int key, Clients client)
+        public static bool Add_Client(Clients client)
         {
-            if (!clients.ContainsKey(key)) clients.Add(key, client);
-        }
-
-
-        //public static  isHandBook(Books book, Clients client)
-        //{
-        //    if (book.Key && client.Value.Carta.Number)
-        //        return false;
-        //}
-
-        public static void Add_Client(Clients client)
-        {
-
-            var keys = clients.Keys;
-            var last = keys.Last();
-            clients.Add(last + 1, client);
-        }
-
-
-        public static Books GetBookByName(string name)
-        {
-            foreach (var book in Books)
+            if (GetClient(client.Carta.Number) != null)
             {
-                if (book.name.Equals(name))
-                    return book;
+                var keys = clients.Keys;
+                var last = keys.Last();
+                clients.Add(last + 1, client);
+                return true;
             }
 
-            return null;
+            return false;
         }
+
+
+        //public static Books GetBookByName(string name)
+        //{
+        //    foreach (var book in Books)
+        //    {
+        //        if (book.name.Equals(name))
+        //            return book;
+        //    }
+
+        //    return null;
+        //}
+
         public static bool Get_Book(Clients client, Books book)
         {
             DateTime taking_book = DateTime.Today;
@@ -106,8 +103,8 @@ namespace Kurs2
                 {
                     Recordings recording = new Recordings(returning_book1, taking_book, book);
                     client.Carta.Recordings.Add(recording);
-                    if (book.Number_of_copies > 0) { book.Number_of_copies -= 1; }
-                    if (book.Number_of_copies == 0) Library.Delete_Book(book.Key);/////////////
+                    if (book.Number_of_copies > 0) book.Number_of_copies -= 1; 
+                    if (book.Number_of_copies == 0) Library.Delete_Book(book.Key);
                     return true;
                 }
             }
@@ -128,50 +125,68 @@ namespace Kurs2
             return null;
         }
 
-        private static bool Pass(Books book, Clients client)
+        private static void Pass(Books book, Clients client)
         {
-            bool flag = false;
-            DateTime returning_book = DateTime.Today;
             foreach (var book1 in Library.books)
             {
-                if (clients.ContainsKey(book.Key))
+                if (book.Key == book1.Key)
                 {
-
-                    if (book.Key == book1.Key)
+                    if (book.Number_of_copies >= 0)
                     {
                         book.Number_of_copies += 1;
-                        foreach (var recording in client.Carta.Recordings)
+                        for (int i = 0; i < client.Carta.Recordings.Count; i++)
                         {
+                            Recordings recording = client.Carta.Recordings[i];
                             if (recording.Books.Name.Equals(book.Name))
                             {
-                                recording.IsAvailable = true;
-                                flag = false;
+                                client.Carta.Recordings.Remove(recording);
+                                //recording.Books.Number_of_copies -= 1;
                             }
                         }
                     }
                 }
             }
-
-            return flag;
         }
         public static void Pass_Book(Books books, Clients client)
         {
-            if (!Pass(books, client))
-            {
-                Library.Add_Book(books.Key, books.name, books.author, books.date_of_publishing, books.Number_of_copies + 1);
-                Library.Pass(books, client);
-            }
+            Pass(books, client);
         }
 
-        public static bool IsTrue(string number)
+        public static bool NoHand(Books books)
         {
             foreach (var client in clients)
             {
-                if (client.Value.Carta.Number.Equals(number))
+                foreach (var recording in client.Value.Carta.Recordings)
                 {
-                    return true;
+                    if (recording.Books.name.Equals(books.name))
+                    {
+                        return true;
+                    }
                 }
             }
+
+            return false;
+        }
+
+        //public static bool IsTrue(string number)
+        //{
+        //    foreach (var client in clients)
+        //    {
+        //        if (client.Value.Carta.Number.Equals(number))
+        //        {
+        //            return true;
+        //        }
+        //    }
+        //    return false;
+        //}
+
+        public static bool ContainsBookInLibrary(int key)
+        {
+            foreach (var book in books)
+            {
+                if (book.Key == key) return true;
+            }
+
             return false;
         }
 

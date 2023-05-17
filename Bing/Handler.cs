@@ -16,21 +16,29 @@ namespace Kurs2
             {
                 case "AddClient":
                     var client = JsonConvert.DeserializeObject<Clients>(jsonRequest.Data);
-                    Library.Add_Client(client);
-                    response = "Client added successfully.";
+                    if (Library.Add_Client(client)) response = "Клиент успешно добавлен";
+                    else response = "Клиент с таким логином уже существует";
                     break;
                 case "AddBook":
                     var book = JsonConvert.DeserializeObject<Books>(jsonRequest.Data);
-                    Library.Add_Book(book.Key, book.Name, book.author, book.date_of_publishing, book.Number_of_copies);
-                    response = "Book added successfully.";
+                    if (Library.Add_Book(book)) response = "Книга успешно добавлена";
+                    else response = "Эта книга уже существует в библиотеке";
                     break;
                 case "DeleteBook":
                     book = JsonConvert.DeserializeObject<Books>(jsonRequest.Data);
-                    Library.Delete_Book(book.Key);
-                    response = "Book deleted successfully.";
+                    if (Library.Delete_Book(book.Key)) response = "Книга удалена успешно";
+                    else response = "Книга все ещё есть у клиентов или такой книги в библиотеке нет";
                     break;
-                case "GetBooks":
+                case "AllBooks":
                     response = JsonConvert.SerializeObject(Library.Books);
+                    break;
+                case "AllClients":
+                    response = JsonConvert.SerializeObject(Library.Clients.Values);
+                    break;
+                case "GetClient":
+                    var data = JsonConvert.DeserializeObject<string>(jsonRequest.Data);
+                    client = Library.GetClient(data);
+                    response = JsonConvert.SerializeObject(client);
                     break;
                 case "AddBookToClient":
                     var bookClient = JsonConvert.DeserializeObject<(Books,Clients)>(jsonRequest.Data);
